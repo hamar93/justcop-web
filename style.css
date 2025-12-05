@@ -1,0 +1,253 @@
+:root {
+    --bg-color: #000000;
+    --text-color: #FFFFFF;
+    --neon-red: #FF2E2E;
+    --electric-blue: #00AEEF;
+    --font-family: 'Inter', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* Typography */
+h1, h2, h3 {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+}
+
+h1 {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+    color: #cccccc;
+    font-weight: 400;
+    margin-bottom: 2rem;
+}
+
+p {
+    font-size: 1.125rem;
+    color: #a0a0a0;
+    margin-bottom: 2rem;
+    max-width: 600px;
+}
+
+/* Utilities */
+.highlight-blue {
+    color: var(--electric-blue);
+    font-weight: 700;
+}
+
+.highlight-red {
+    color: var(--neon-red);
+}
+
+/* Layout */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+header {
+    padding: 2rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--neon-red);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-eagle {
+    /* Placeholder for eagle silhouette if needed */
+    width: 24px;
+    height: 24px;
+    background-color: var(--neon-red);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+}
+
+/* Hero Section */
+.hero {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 4rem 0;
+}
+
+.hero-content {
+    max-width: 800px;
+}
+
+/* Buttons */
+.cta-group {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-block;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(255, 46, 46, 0.4);
+}
+
+.btn-primary {
+    background-color: var(--neon-red);
+    color: #fff;
+    border-color: var(--neon-red);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--electric-blue);
+    border-color: var(--electric-blue);
+}
+
+.btn-secondary:hover {
+    background-color: rgba(0, 174, 239, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 174, 239, 0.4);
+}
+
+/* Language Selection Page Specifics */
+.lang-selection-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+}
+
+.lang-container {
+    animation: fadeBtn 0.8s ease-out;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid #333;
+    color: #fff;
+    margin: 0 10px;
+}
+
+.btn-outline:hover {
+    border-color: var(--neon-red);
+    color: var(--neon-red);
+}
+
+/* Footer */
+footer {
+    padding: 4rem 0 2rem;
+    border-top: 1px solid #222;
+    margin-top: 4rem;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.footer-links a {
+    color: #888;
+    text-decoration: none;
+    margin-left: 20px;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    color: var(--electric-blue);
+}
+
+.copyright {
+    color: #555;
+    font-size: 0.8rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.5rem;
+    }
+    
+    .hero {
+        align-items: center;
+        text-align: center;
+        padding-top: 2rem;
+    }
+    
+    p {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .cta-group {
+        justify-content: center;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .footer-links a {
+        margin: 0 10px;
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hero-content > * {
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.hero-content h2 { animation-delay: 0.1s; opacity: 0; }
+.hero-content p { animation-delay: 0.2s; opacity: 0; }
+.hero-content .cta-group { animation-delay: 0.3s; opacity: 0; }
