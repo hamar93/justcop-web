@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JustCop Live Studio</title>
+    <style>
+        /* Modern Reset & Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #000;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            /* No scrolling */
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Fullscreen Camera Preview */
+        #video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* Fill screen */
+            transform: scaleX(-1);
+            /* Mirror effect for selfie cam */
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent, rgba(0, 0, 0, 0.6));
+            pointer-events: none;
+            /* Let clicks pass to video if needed */
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .status-badge {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #ccc;
+            border: 1px solid #444;
+        }
+
+        .status-badge.live {
+            background: #ff0000;
+            color: white;
+            border-color: #ff0000;
+        }
+
+        /* Bottom Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            pointer-events: auto;
+            margin-bottom: 40px;
+        }
+
+        /* Go Live Button */
+        #action-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #action-btn .inner {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #ff2e2e;
+            /* JustCop Red */
+        }
+
+        #action-btn.streaming {
+            border-color: #ff2e2e;
+            background: rgba(255, 46, 46, 0.2);
+        }
+
+        #action-btn.streaming .inner {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            /* Stop square */
+            background: #ff2e2e;
+        }
+
+        /* Helper Messages */
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 3;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="video-container">
+        <video id="preview" autoplay playsinline muted></video>
+    </div>
+
+    <div id="ui-layer">
+        <div class="top-bar">
+            <div id="status" class="status-badge">READY</div>
+        </div>
+        <div class="controls">
+            <div id="action-btn">
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+        // --- State ---
+        let isStreaming = false;
+        let stream = null;
+        let videoElement = document.getElementById('preview');
+        let statusBadge = document.getElementById('status');
+        let actionBtn = document.getElementById('action-btn');
+        let msgBox = document.getElementById('message');
+
+        // --- Core Functions ---
+
+        async function initCamera() {
+            try {
+                // Request Camera & Mic
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user', // Selfie cam
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: true
+                });
+                videoElement.srcObject = stream;
+            } catch (err) {
+                showError("Camera access denied: " + err.message);
+                console.error(err);
+            }
+        }
+
+        async function toggleBroadcast() {
+            if (isStreaming) {
+                stopBroadcast();
+            } else {
+                startBroadcast();
+            }
+        }
+
+        function startBroadcast() {
+            // TODO: Implement OME WebRTC or WHIP publishing here
+            // For now, visual feedback only
+            isStreaming = true;
+            statusBadge.textContent = "LIVE";
+            statusBadge.classList.add('live');
+            actionBtn.classList.add('streaming');
+            showMessage("Live Stream Started (Simulation)");
+
+            // Notify Flutter
+            if (window.flutter_inappwebview) {
+                window.flutter_inappwebview.callHandler('onBroadcastStart');
+            }
+        }
+
+        function stopBroadcast() {
+            isStreaming = false;
+            statusBadge.textContent = "READY";
+            statusBadge.classList.remove('live');
+            actionBtn.classList.remove('streaming');
+            showMessage("Stream Ended");
+
+            // Notify Flutter
+            if (window.flutter_inappwebview) {
+                window.flutter_inappwebview.callHandler('onBroadcastStop');
+            }
+        }
+
+        function showMessage(text) {
+            msgBox.textContent = text;
+            msgBox.style.display = 'block';
+            setTimeout(() => { msgBox.style.display = 'none'; }, 2000);
+        }
+
+        function showError(text) {
+            msgBox.textContent = text;
+            msgBox.style.background = 'rgba(255,0,0,0.8)';
+            msgBox.style.display = 'block';
+        }
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initCamera();
+            actionBtn.addEventListener('click', toggleBroadcast);
+        });
+
+    </script>
+</body>
+
+</html>
