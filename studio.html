@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v1.6 (Manual Config)<br></div>
-        <div id="version">v1.6</div>
+        <div id="logger">DEBUG LOG v1.8 (Protocol Fix)<br></div>
+        <div id="version">v1.8</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -678,7 +678,9 @@
 
         function sendSignaling(data) {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                if (!data.id) data.id = Date.now();
+                // Fixed ID for OME Protocol Compliance (v1.8)
+                data.id = 1;
+                log('SIG -> ' + data.command + ' (id: ' + data.id + ')');
                 ws.send(JSON.stringify(data));
             }
         }
