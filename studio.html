@@ -33,7 +33,7 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            background: black;
+            background: #111;
         }
 
         video {
@@ -65,10 +65,8 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            /* Changed from center to accommodate different heights */
             pointer-events: auto;
             margin-top: env(safe-area-inset-top, 20px);
-            /* Adapt to notch */
         }
 
         .status-badge {
@@ -124,7 +122,6 @@
         #cam-btn {
             width: 44px;
             height: 44px;
-            /* Larger touch target */
             background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             display: flex;
@@ -145,7 +142,6 @@
         /* Chat Area */
         #chat-container {
             width: 100%;
-            /* Full width on mobile */
             max-width: 400px;
             max-height: 250px;
             display: flex;
@@ -154,7 +150,6 @@
             margin-bottom: 20px;
             pointer-events: auto;
             align-self: flex-start;
-            /* Align left */
         }
 
         #chat-list {
@@ -166,14 +161,12 @@
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
             padding-right: 5px;
             -webkit-overflow-scrolling: touch;
-            /* Smooth scroll */
         }
 
         .chat-msg {
             font-size: 14px;
             color: white;
             background: rgba(0, 0, 0, 0.5);
-            /* Slightly darker for readability */
             padding: 6px 10px;
             border-radius: 12px;
             align-self: flex-start;
@@ -201,7 +194,6 @@
             color: white;
             padding: 10px 14px;
             font-size: 16px;
-            /* Prevent zoom on focus iOS */
             outline: none;
             backdrop-filter: blur(5px);
         }
@@ -237,6 +229,7 @@
             align-items: center;
             pointer-events: auto;
             margin-bottom: env(safe-area-inset-bottom, 20px);
+            gap: 20px;
         }
 
         /* Go Live Button */
@@ -280,6 +273,26 @@
             box-shadow: 0 0 15px rgba(255, 46, 46, 0.6);
         }
 
+        /* Reload Button */
+        #reload-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        #reload-btn svg {
+            fill: white;
+            width: 24px;
+            height: 24px;
+        }
+
+
         /* Helper Messages */
         #message {
             position: absolute;
@@ -298,6 +311,22 @@
             width: 80%;
             max-width: 300px;
         }
+
+        #logger {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 80%;
+            height: 100px;
+            overflow-y: auto;
+            font-size: 10px;
+            color: lime;
+            background: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 0;
+            display: none;
+            /* Enable via console */
+        }
     </style>
 </head>
 
@@ -313,15 +342,26 @@
                 <div class="status-indicator"></div>
                 <span id="status-text">READY</span>
             </div>
-            <div id="cam-btn">
-                <svg viewBox="0 0 24 24">
-                    <path
-                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
-                </svg>
+
+            <div style="display:flex; gap:10px;">
+                <div id="logger-toggle" style="opacity:0;">L</div>
+                <div id="reload-btn" title="Reload Camera">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                </div>
+                <div id="cam-btn" title="Switch Camera">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
+                    </svg>
+                </div>
             </div>
         </div>
 
         <div style="flex: 1;"></div>
+        <div id="logger"></div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -350,17 +390,27 @@
         let localStream = null;
         let peerConnection = null;
         let ws = null;
-        let currentFacingMode = 'user'; // 'user' or 'environment'
+        let currentFacingMode = 'user';
 
         const videoElement = document.getElementById('preview');
         const statusBadge = document.getElementById('status');
         const statusText = document.getElementById('status-text');
         const actionBtn = document.getElementById('action-btn');
         const camBtn = document.getElementById('cam-btn');
+        const reloadBtn = document.getElementById('reload-btn');
         const msgBox = document.getElementById('message');
         const chatList = document.getElementById('chat-list');
         const chatInput = document.getElementById('chat-input');
         const chatSend = document.getElementById('chat-send');
+        const logger = document.getElementById('logger');
+
+        function log(msg) {
+            console.log(msg);
+            const line = document.createElement('div');
+            line.textContent = '>' + msg;
+            logger.appendChild(line);
+            logger.scrollTop = logger.scrollHeight;
+        }
 
         function parseParams() {
             const params = new URLSearchParams(window.location.search);
@@ -369,26 +419,30 @@
         }
 
         async function initCamera() {
+            log('Initing camera...');
             try {
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop());
+                }
                 const constraints = {
                     video: { facingMode: currentFacingMode, width: { ideal: 720 }, height: { ideal: 1280 } },
                     audio: { echoCancellation: true, noiseSuppression: true }
                 };
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                log('Camera OK');
                 videoElement.srcObject = localStream;
                 if (currentFacingMode === 'user') { videoElement.style.transform = 'scaleX(-1)'; }
                 else { videoElement.style.transform = 'scaleX(1)'; }
 
-                // Ensure video plays
-                try { await videoElement.play(); } catch (e) { console.log("Auto-play prevented"); }
+                try { await videoElement.play(); } catch (e) { log("Auto-play error: " + e.message); }
 
-            } catch (err) { showError("Kamera Hiba: " + err.message); }
+            } catch (err) {
+                log("Error: " + err.name + " " + err.message);
+                showError("Kamera Hiba: " + err.name);
+            }
         }
 
         async function switchCamera() {
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop());
-            }
             currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
             await initCamera();
             if (peerConnection && isStreaming) {
@@ -398,8 +452,8 @@
             }
         }
 
-        // --- Chat Functions ---
         function addChatMessage(username, message) {
+            log('Chat in: ' + message);
             const el = document.createElement('div');
             el.className = 'chat-msg';
             el.innerHTML = `<b>${username}:</b> ${message}`;
@@ -410,23 +464,26 @@
         function sendMessage() {
             const text = chatInput.value.trim();
             if (!text) return;
-            // Send to Flutter
+
+            // Optimistic UI update
+            addChatMessage("Én", text);
+
             if (window.flutter_inappwebview) {
                 window.flutter_inappwebview.callHandler('onSendMessage', text);
-            } else {
-                addChatMessage("Me", text); // Fallback test
             }
             chatInput.value = '';
         }
 
-        // --- Core ---
         function toggleBroadcast() { isStreaming ? stopBroadcast() : startBroadcast(); }
 
-        function startBroadcast() {
-            if (!localStream) { showError("Nincs kamera!"); return; }
+        async function startBroadcast() {
+            if (!localStream) {
+                log("No stream, retrying init...");
+                await initCamera();
+                if (!localStream) { showError("Nincs kamera!"); return; }
+            }
             statusText.textContent = "CSATLAKOZÁS...";
             actionBtn.style.opacity = "0.5";
-            actionBtn.style.pointerEvents = "none";
             connectToOME();
         }
 
@@ -436,14 +493,12 @@
             isStreaming = false;
             updateUIState(false);
             showMessage("Élő adás vége");
-            // Notify Flutter
             if (window.flutter_inappwebview) window.flutter_inappwebview.callHandler('onBroadcastStop');
         }
 
         function updateUIState(live) {
             isStreaming = live;
             actionBtn.style.opacity = "1";
-            actionBtn.style.pointerEvents = "auto";
             if (live) {
                 statusText.textContent = "ÉLŐ";
                 statusBadge.classList.add('live');
@@ -455,13 +510,13 @@
             }
         }
 
-        // --- OME WebRTC ---
         function connectToOME() {
             const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}?direction=send&transport=webrtc`;
+            log('Connecting WS: ' + wsUrl);
             ws = new WebSocket(wsUrl);
             ws.onopen = () => createPeerConnection();
             ws.onmessage = (e) => handleSignaling(JSON.parse(e.data));
-            ws.onerror = (e) => { showError("Hálózati Hiba"); stopBroadcast(); };
+            ws.onerror = (e) => { log("WS Error"); showError("Hálózati Hiba"); stopBroadcast(); };
             ws.onclose = () => { if (isStreaming) stopBroadcast(); };
         }
 
@@ -471,6 +526,7 @@
             localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
             peerConnection.onicecandidate = (e) => { if (e.candidate) sendSignaling({ command: "candidate", candidates: [e.candidate] }); };
             peerConnection.onconnectionstatechange = () => {
+                log('PC State: ' + peerConnection.connectionState);
                 if (peerConnection.connectionState === 'connected') { updateUIState(true); showMessage("ÉLŐ ADÁS!"); if (window.flutter_inappwebview) window.flutter_inappwebview.callHandler('onBroadcastStart'); }
                 else if (peerConnection.connectionState === 'failed') { showError("Hiba"); stopBroadcast(); }
             };
@@ -482,7 +538,7 @@
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 sendSignaling({ command: "offer", sdp: offer });
-            } catch (e) { stopBroadcast(); }
+            } catch (e) { log(e); stopBroadcast(); }
         }
 
         async function handleSignaling(msg) {
@@ -501,10 +557,13 @@
             initCamera();
             actionBtn.addEventListener('click', toggleBroadcast);
             camBtn.addEventListener('click', switchCamera);
+            reloadBtn.addEventListener('click', initCamera);
             chatSend.addEventListener('click', sendMessage);
             chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-            // Expose to Flutter
+            document.getElementById('logger-toggle').addEventListener('click', () => {
+                logger.style.display = logger.style.display === 'block' ? 'none' : 'block';
+            });
             window.updateChat = addChatMessage;
         });
     </script>
