@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v1.8 (Protocol Fix)<br></div>
-        <div id="version">v1.8</div>
+        <div id="logger">DEBUG LOG v1.9 (Back Cam + JSON Fix)<br></div>
+        <div id="version">v1.9</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -466,7 +466,7 @@
         let localStream = null;
         let peerConnection = null;
         let ws = null;
-        let currentFacingMode = 'user';
+        let currentFacingMode = 'environment'; // Default: Back Camera
 
         const videoElement = document.getElementById('preview');
         const statusBadge = document.getElementById('status');
