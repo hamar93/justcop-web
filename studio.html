@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v2.5 (Logic Order Fix)<br></div>
-        <div id="version">v2.5</div>
+        <div id="logger">DEBUG LOG v2.6 (PeerID Fix)<br></div>
+        <div id="version">v2.6</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -658,6 +658,12 @@
         }
 
         async function handleSignaling(msg) {
+            // v2.6 Fix: Capture Peer ID from server message
+            if (msg.peer_id) {
+                peerId = msg.peer_id;
+                log("Peer ID Set: " + peerId);
+            }
+
             log('Handling: ' + (msg.command || (msg.candidates ? 'candidates' : 'unknown')));
 
             // 1. PRIORITY: Handle OFFER first! (To create PC)
