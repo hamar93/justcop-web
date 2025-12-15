@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v2.2 (Username Fix)<br></div>
-        <div id="version">v2.2</div>
+        <div id="logger">DEBUG LOG v2.3 (Stable Network)<br></div>
+        <div id="version">v2.3</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -627,31 +627,31 @@
         }
 
         function connectToOME() {
-            const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}?direction=send&transport=tcp`;
-            log('Connecting WS: ' + wsUrl);
+            // v2.3 Simplification: Remove transport=tcp and direction parameters
+            // Let OME and WebRTC negotiate the best transport
+            const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}`;
+            log('Connecting WS (v2.3): ' + wsUrl);
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                log('WS Open - Requesting Offer from Server');
-                // OME Protocol: Client requests offer first!
+                log('WS Open - Requesting Offer');
                 sendSignaling({ command: "request_offer" });
             };
 
             ws.onmessage = (e) => {
-                log('WS MSG: ' + e.data.substring(0, 100) + '...');
                 handleSignaling(JSON.parse(e.data));
             };
 
             ws.onerror = (e) => {
                 log("WS Error");
-                showError("Hálózati Hiba: WS Error");
+                showError("Hálózati Hiba");
                 stopBroadcast();
             };
 
             ws.onclose = (e) => {
-                log(`WS Closed: ${e.code} - ${e.reason}`);
                 if (isStreaming) {
-                    showError(`Kapcsolat bontva (${e.code})`);
+                    log(`WS Closed: ${e.code}`);
+                    showError(`Kapcsolat bontva`);
                     stopBroadcast();
                 }
             };
@@ -684,16 +684,10 @@
                 log("Got OFFER (starting PC)");
 
                 try {
-                    // Extract ICE servers
-                    let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
-                    if (msg.ice_servers && msg.ice_servers.length > 0) {
-                        // FIX: OME sends 'user_name', WebRTC needs 'username'
-                        iceServers = msg.ice_servers.map(s => {
-                            if (s.user_name && !s.username) s.username = s.user_name;
-                            return s;
-                        });
-                        log("ICE Servers: " + JSON.stringify(iceServers).substring(0, 50) + "...");
-                    }
+                    // v2.3 FIX: Ignore Server ICE servers (they contain Docker IPs)
+                    // Use ONLY reliable public Google STUN for stability
+                    const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+                    log("Using Public STUN only (Ignoring server ICE)");
 
                     const config = { iceServers: iceServers };
                     peerConnection = new RTCPeerConnection(config);
