@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v2.1 (ICE Connection Fix)<br></div>
-        <div id="version">v2.1</div>
+        <div id="logger">DEBUG LOG v2.2 (Username Fix)<br></div>
+        <div id="version">v2.2</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -658,10 +658,10 @@
         }
 
         async function handleSignaling(msg) {
-            log('Handling: ' + (msg.command || 'code:' + msg.code));
+            log('Handling: ' + (msg.command || (msg.candidates ? 'candidates' : 'unknown')));
 
-            // Handle candidates that might arrive before offer
-            if (msg.command === "candidate" && msg.candidates) {
+            // 1. Handle candidates explicitly (Buffer if needed)
+            if (msg.candidates || (msg.command === "candidate" && msg.candidates)) {
                 if (!peerConnection) {
                     log("Buffering " + msg.candidates.length + " candidates (no PC yet)");
                     pendingCandidates.push(...msg.candidates);
@@ -679,112 +679,121 @@
                 return;
             }
 
-            // OME sends us the OFFER (not answer!)
+            // 2. Handle OFFER
             if (msg.command === "offer") {
-                log("Got OFFER SDP from server");
+                log("Got OFFER (starting PC)");
 
-                // Extract ICE servers if provided (for TCP transport)
-                let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
-                if (msg.ice_servers && msg.ice_servers.length > 0) {
-                    iceServers = msg.ice_servers;
-                    log("Using server ICE: " + JSON.stringify(iceServers).substring(0, 100));
-                }
-
-                // Create PeerConnection with received ICE config
-                const config = { iceServers: iceServers };
-                peerConnection = new RTCPeerConnection(config);
-                log("PeerConnection created");
-
-                // Add local tracks
-                localStream.getTracks().forEach(t => {
-                    peerConnection.addTrack(t, localStream);
-                    log("Added track: " + t.kind);
-                });
-
-                // ICE candidate handling - send our candidates to server
-                peerConnection.onicecandidate = (e) => {
-                    if (e.candidate) {
-                        log("Sending our ICE candidate");
-                        sendSignaling({ command: "candidate", candidates: [e.candidate] });
-                    } else {
-                        log("ICE gathering complete");
+                try {
+                    // Extract ICE servers
+                    let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+                    if (msg.ice_servers && msg.ice_servers.length > 0) {
+                        // FIX: OME sends 'user_name', WebRTC needs 'username'
+                        iceServers = msg.ice_servers.map(s => {
+                            if (s.user_name && !s.username) s.username = s.user_name;
+                            return s;
+                        });
+                        log("ICE Servers: " + JSON.stringify(iceServers).substring(0, 50) + "...");
                     }
-                };
 
-                // ICE connection state - this is key for debugging!
-                peerConnection.oniceconnectionstatechange = () => {
-                    log('ICE State: ' + peerConnection.iceConnectionState);
-                    if (peerConnection.iceConnectionState === 'connected') {
-                        log("ICE CONNECTED!");
-                    } else if (peerConnection.iceConnectionState === 'failed') {
-                        log("ICE FAILED - check firewall/NAT");
-                    }
-                };
+                    const config = { iceServers: iceServers };
+                    peerConnection = new RTCPeerConnection(config);
+                    log("PC Created!");
 
-                // Overall connection state
-                peerConnection.onconnectionstatechange = () => {
-                    log('PC State: ' + peerConnection.connectionState);
-                    if (peerConnection.connectionState === 'connected') {
-                        updateUIState(true);
-                        showMessage("ÉLŐ ADÁS!");
-                        if (window.flutter_inappwebview) window.flutter_inappwebview.callHandler('onBroadcastStart');
-                    }
-                    else if (peerConnection.connectionState === 'failed') {
-                        log("PC Failed");
-                        showError("Kapcsolat Hiba");
+                    // Add local tracks
+                    localStream.getTracks().forEach(t => {
+                        peerConnection.addTrack(t, localStream);
+                        log("Added track: " + t.kind);
+                    });
+
+                    // ICE candidate handling - send our candidates to server
+                    peerConnection.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            log("Sending our ICE candidate");
+                            sendSignaling({ command: "candidate", candidates: [e.candidate] });
+                        } else {
+                            log("ICE gathering complete");
+                        }
+                    };
+
+                    // ICE connection state - this is key for debugging!
+                    peerConnection.oniceconnectionstatechange = () => {
+                        log('ICE State: ' + peerConnection.iceConnectionState);
+                        if (peerConnection.iceConnectionState === 'connected') {
+                            log("ICE CONNECTED!");
+                        } else if (peerConnection.iceConnectionState === 'failed') {
+                            log("ICE FAILED - check firewall/NAT");
+                        }
+                    };
+
+                    // Overall connection state
+                    peerConnection.onconnectionstatechange = () => {
+                        log('PC State: ' + peerConnection.connectionState);
+                        if (peerConnection.connectionState === 'connected') {
+                            updateUIState(true);
+                            showMessage("ÉLŐ ADÁS!");
+                            if (window.flutter_inappwebview) window.flutter_inappwebview.callHandler('onBroadcastStart');
+                        }
+                        else if (peerConnection.connectionState === 'failed') {
+                            log("PC Failed");
+                            showError("Kapcsolat Hiba");
+                            stopBroadcast();
+                        }
+                    };
+
+                    // Set remote description (the OFFER from server)
+                    try {
+                        // Handle both object and string SDP formats
+                        let sdpString = msg.sdp;
+                        if (typeof msg.sdp === 'object' && msg.sdp.sdp) {
+                            sdpString = msg.sdp.sdp;
+                        }
+
+                        const offerSdp = new RTCSessionDescription({
+                            type: "offer",
+                            sdp: sdpString
+                        });
+                        await peerConnection.setRemoteDescription(offerSdp);
+                        log("Remote desc set (offer)");
+
+                        // Add candidates that came with the offer
+                        if (msg.candidates && msg.candidates.length > 0) {
+                            for (const c of msg.candidates) {
+                                await peerConnection.addIceCandidate(new RTCIceCandidate(c));
+                            }
+                            log("Added " + msg.candidates.length + " offer candidates");
+                        }
+
+                        // Apply any pending candidates that arrived before offer
+                        if (pendingCandidates.length > 0) {
+                            log("Applying " + pendingCandidates.length + " buffered candidates");
+                            for (const c of pendingCandidates) {
+                                try {
+                                    await peerConnection.addIceCandidate(new RTCIceCandidate(c));
+                                } catch (e) {
+                                    log("Buffered ICE Error: " + e.message);
+                                }
+                            }
+                            pendingCandidates = [];
+                        }
+
+                        // Create ANSWER and send back
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        log("Local desc set (answer) - Sending to server");
+
+                        sendSignaling({
+                            command: "answer",
+                            sdp: peerConnection.localDescription
+                        });
+
+                    } catch (e) {
+                        log("SDP Error: " + e.message);
+                        showError("SDP Hiba: " + e.message);
                         stopBroadcast();
                     }
-                };
-
-                // Set remote description (the OFFER from server)
-                try {
-                    // Handle both object and string SDP formats
-                    let sdpString = msg.sdp;
-                    if (typeof msg.sdp === 'object' && msg.sdp.sdp) {
-                        sdpString = msg.sdp.sdp;
-                    }
-
-                    const offerSdp = new RTCSessionDescription({
-                        type: "offer",
-                        sdp: sdpString
-                    });
-                    await peerConnection.setRemoteDescription(offerSdp);
-                    log("Remote desc set (offer)");
-
-                    // Add candidates that came with the offer
-                    if (msg.candidates && msg.candidates.length > 0) {
-                        for (const c of msg.candidates) {
-                            await peerConnection.addIceCandidate(new RTCIceCandidate(c));
-                        }
-                        log("Added " + msg.candidates.length + " offer candidates");
-                    }
-
-                    // Apply any pending candidates that arrived before offer
-                    if (pendingCandidates.length > 0) {
-                        log("Applying " + pendingCandidates.length + " buffered candidates");
-                        for (const c of pendingCandidates) {
-                            try {
-                                await peerConnection.addIceCandidate(new RTCIceCandidate(c));
-                            } catch (e) {
-                                log("Buffered ICE Error: " + e.message);
-                            }
-                        }
-                        pendingCandidates = [];
-                    }
-
-                    // Create ANSWER and send back
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    log("Local desc set (answer) - Sending to server");
-
-                    sendSignaling({
-                        command: "answer",
-                        sdp: peerConnection.localDescription
-                    });
-
                 } catch (e) {
-                    log("SDP Error: " + e.message);
-                    showError("SDP Hiba: " + e.message);
+                    log("PC Setup Error: " + e.message);
+                    showError("Kritikus Hiba: " + e.message);
                     stopBroadcast();
                 }
                 return;
