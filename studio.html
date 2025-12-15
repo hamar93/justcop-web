@@ -273,6 +273,10 @@
             box-shadow: 0 0 15px rgba(255, 46, 46, 0.6);
         }
 
+        .mirror-x {
+            transform: scaleX(-1);
+        }
+
         /* Reload Button */
         #reload-btn {
             width: 44px;
@@ -376,8 +380,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v1.4<br></div>
-        <div id="version">v1.4</div>
+        <div id="logger">DEBUG LOG v1.5<br></div>
+        <div id="version">v1.5</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -430,7 +434,12 @@
 
         function parseParams() {
             const params = new URLSearchParams(window.location.search);
-            if (params.has('id')) CONFIG.streamId = params.get('id');
+            if (params.has('id')) {
+                // Remove hyphens for OME compatibility
+                const rawId = params.get('id');
+                CONFIG.streamId = rawId.replace(/-/g, '');
+                log("Sanitized Stream ID: " + CONFIG.streamId + " (from " + rawId + ")");
+            }
             if (params.has('host')) CONFIG.host = params.get('host');
         }
 
@@ -448,7 +457,6 @@
                         audio: { echoCancellation: true, noiseSuppression: true }
                     };
                 } else {
-                    // Fallback: Minimal requirements
                     constraints = { video: true, audio: true };
                 }
 
@@ -510,7 +518,7 @@
         async function startBroadcast() {
             if (!localStream) {
                 log("No stream, retrying init...");
-                await initCamera(true); // Force simple init if missing
+                await initCamera(true);
                 if (!localStream) { showError("Nincs kamera!"); return; }
             }
             statusText.textContent = "CSATLAKOZÁS...";
@@ -593,9 +601,12 @@
             }
         }
 
-        function sendSignaling(data) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); }
-        function showMessage(text) { msgBox.textContent = text; msgBox.style.display = 'block'; setTimeout(() => msgBox.style.display = 'none', 2500); }
-        function showError(text) { msgBox.textContent = text; msgBox.style.background = 'rgba(200, 30, 30, 0.9)'; msgBox.style.display = 'block'; setTimeout(() => msgBox.style.display = 'none', 4000); }
+        function sendSignaling(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                if (!data.id) data.id = Date.now();
+                ws.send(JSON.stringify(data));
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             parseParams();
