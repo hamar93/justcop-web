@@ -683,6 +683,22 @@
             }
         }
 
+        function forceStop() {
+            log("Force stopping everything...");
+            stopBroadcast();
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    track.stop();
+                    log("Stopped track: " + track.kind);
+                });
+                localStream = null;
+            }
+            videoElement.srcObject = null;
+        }
+
+        window.addEventListener('beforeunload', forceStop);
+        window.addEventListener('pagehide', forceStop);
+
         document.addEventListener('DOMContentLoaded', () => {
 
             // Buttons
@@ -700,11 +716,14 @@
             document.getElementById('logger-toggle').addEventListener('click', () => {
                 logger.style.display = logger.style.display === 'block' ? 'none' : 'block';
             });
-            window.updateChat = addChatMessage;
 
             // Init
             parseParams();
             initCamera();
+
+            // Expose for Flutter
+            window.forceStop = forceStop;
+            window.updateChat = addChatMessage;
         });
     </script>
 </body>
