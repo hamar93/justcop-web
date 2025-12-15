@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v2.4 (Direction Fix)<br></div>
-        <div id="version">v2.4</div>
+        <div id="logger">DEBUG LOG v2.5 (Logic Order Fix)<br></div>
+        <div id="version">v2.5</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -660,32 +660,12 @@
         async function handleSignaling(msg) {
             log('Handling: ' + (msg.command || (msg.candidates ? 'candidates' : 'unknown')));
 
-            // 1. Handle candidates explicitly (Buffer if needed)
-            if (msg.candidates || (msg.command === "candidate" && msg.candidates)) {
-                if (!peerConnection) {
-                    log("Buffering " + msg.candidates.length + " candidates (no PC yet)");
-                    pendingCandidates.push(...msg.candidates);
-                    return;
-                }
-
-                log("Got " + msg.candidates.length + " ICE candidates");
-                for (const c of msg.candidates) {
-                    try {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(c));
-                    } catch (e) {
-                        log("ICE Add Error: " + e.message);
-                    }
-                }
-                return;
-            }
-
-            // 2. Handle OFFER
+            // 1. PRIORITY: Handle OFFER first! (To create PC)
             if (msg.command === "offer") {
                 log("Got OFFER (starting PC)");
 
                 try {
-                    // v2.3 FIX: Ignore Server ICE servers (they contain Docker IPs)
-                    // Use ONLY reliable public Google STUN for stability
+                    // v2.3/2.4 Config: Public STUN only
                     const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
                     log("Using Public STUN only (Ignoring server ICE)");
 
