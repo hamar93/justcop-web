@@ -41,7 +41,6 @@
             height: 100%;
             object-fit: cover;
             transform: scaleX(-1);
-            /* Mirror effect for selfie cam */
         }
 
         /* UI Overlay */
@@ -118,25 +117,82 @@
             }
         }
 
-        /* Camera Switch Button */
-        #cam-btn {
-            width: 44px;
-            height: 44px;
+        /* Buttons Grid top right */
+        .btn-grid {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(5px);
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            margin-left: 10px;
+            backdrop-filter: blur(5px);
         }
 
-        #cam-btn svg {
-            width: 24px;
-            height: 24px;
+        .icon-btn svg {
+            width: 22px;
+            height: 22px;
             fill: white;
+        }
+
+        /* Settings Panel */
+        #settings-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            width: 250px;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            display: none;
+            pointer-events: auto;
+            z-index: 3000;
+        }
+
+        #settings-panel h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: #222;
+            border: 1px solid #555;
+            color: white;
+            padding: 6px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .save-btn {
+            background: #ff2e2e;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
         }
 
         /* Chat Area */
@@ -273,30 +329,6 @@
             box-shadow: 0 0 15px rgba(255, 46, 46, 0.6);
         }
 
-        .mirror-x {
-            transform: scaleX(-1);
-        }
-
-        /* Reload Button */
-        #reload-btn {
-            width: 44px;
-            height: 44px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        #reload-btn svg {
-            fill: white;
-            width: 24px;
-            height: 24px;
-        }
-
-
         /* Helper Messages */
         #message {
             position: absolute;
@@ -360,28 +392,52 @@
                 <span id="status-text">READY</span>
             </div>
 
-            <div style="display:flex; gap:10px;">
-                <div id="logger-toggle"
-                    style="background:rgba(200,0,0,0.5); width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-weight:bold;">
-                    L</div>
-                <div id="reload-btn" title="Reload Camera">
+            <div class="btn-grid">
+                <div id="settings-btn" class="icon-btn" title="Settings">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L6.14 5.92c-.11.2-.06.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.11-.22.06-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                    </svg>
+                </div>
+                <!-- Toggle Log -->
+                <div id="logger-toggle" class="icon-btn" style="font-weight:bold; font-size:14px;">L</div>
+                <!-- Reload -->
+                <div id="reload-btn" class="icon-btn">
                     <svg viewBox="0 0 24 24">
                         <path
                             d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
                     </svg>
                 </div>
-                <div id="cam-btn" title="Switch Camera">
+                <!-- Cam Switch -->
+                <div id="cam-btn" class="icon-btn">
                     <svg viewBox="0 0 24 24">
                         <path
-                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
                     </svg>
                 </div>
             </div>
         </div>
 
+        <div id="settings-panel">
+            <h3>WebRTC Settings Override</h3>
+            <div class="input-group">
+                <label>Host</label>
+                <input type="text" id="conf-host" value="ws://217.113.49.50:3333">
+            </div>
+            <div class="input-group">
+                <label>App Name</label>
+                <input type="text" id="conf-app" value="app">
+            </div>
+            <div class="input-group">
+                <label>Stream ID</label>
+                <input type="text" id="conf-stream" value="test">
+            </div>
+            <button class="save-btn" id="conf-save">SAVE & RETRY</button>
+        </div>
+
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v1.5<br></div>
-        <div id="version">v1.5</div>
+        <div id="logger">DEBUG LOG v1.6 (Manual Config)<br></div>
+        <div id="version">v1.6</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -405,7 +461,7 @@
     <div id="message"></div>
 
     <script>
-        const CONFIG = { host: 'ws://217.113.49.50:3333', app: 'app', streamId: 'default', token: '' };
+        const CONFIG = { host: 'ws://217.113.49.50:3333', app: 'app', streamId: 'test', token: '' };
         let isStreaming = false;
         let localStream = null;
         let peerConnection = null;
@@ -418,6 +474,12 @@
         const actionBtn = document.getElementById('action-btn');
         const camBtn = document.getElementById('cam-btn');
         const reloadBtn = document.getElementById('reload-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const confHost = document.getElementById('conf-host');
+        const confApp = document.getElementById('conf-app');
+        const confStream = document.getElementById('conf-stream');
+        const confSave = document.getElementById('conf-save');
         const msgBox = document.getElementById('message');
         const chatList = document.getElementById('chat-list');
         const chatInput = document.getElementById('chat-input');
@@ -433,14 +495,27 @@
         }
 
         function parseParams() {
+            // Retrieve defaults from URL, but allow UI override
             const params = new URLSearchParams(window.location.search);
             if (params.has('id')) {
-                // Remove hyphens for OME compatibility
                 const rawId = params.get('id');
                 CONFIG.streamId = rawId.replace(/-/g, '');
-                log("Sanitized Stream ID: " + CONFIG.streamId + " (from " + rawId + ")");
             }
             if (params.has('host')) CONFIG.host = params.get('host');
+
+            // Sync UI
+            confHost.value = CONFIG.host;
+            confApp.value = CONFIG.app;
+            confStream.value = CONFIG.streamId;
+        }
+
+        function applyConfig() {
+            CONFIG.host = confHost.value;
+            CONFIG.app = confApp.value;
+            CONFIG.streamId = confStream.value;
+            settingsPanel.style.display = 'none';
+            log(`Config Updated: ${CONFIG.app}/${CONFIG.streamId}`);
+            if (isStreaming) stopBroadcast();
         }
 
         async function initCamera(useFallback = false) {
@@ -609,18 +684,27 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            parseParams();
-            initCamera();
+
+            // Buttons
             actionBtn.addEventListener('click', toggleBroadcast);
             camBtn.addEventListener('click', switchCamera);
             reloadBtn.addEventListener('click', initCamera);
             chatSend.addEventListener('click', sendMessage);
             chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
 
+            settingsBtn.addEventListener('click', () => {
+                settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+            });
+            confSave.addEventListener('click', applyConfig);
+
             document.getElementById('logger-toggle').addEventListener('click', () => {
                 logger.style.display = logger.style.display === 'block' ? 'none' : 'block';
             });
             window.updateChat = addChatMessage;
+
+            // Init
+            parseParams();
+            initCamera();
         });
     </script>
 </body>
