@@ -376,8 +376,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v1.3<br></div>
-        <div id="version">v1.3</div>
+        <div id="logger">DEBUG LOG v1.4<br></div>
+        <div id="version">v1.4</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -434,27 +434,42 @@
             if (params.has('host')) CONFIG.host = params.get('host');
         }
 
-        async function initCamera() {
-            log('Initing camera...');
+        async function initCamera(useFallback = false) {
+            log(useFallback ? 'Initing camera (Simple)...' : 'Initing camera...');
             try {
                 if (localStream) {
                     localStream.getTracks().forEach(t => t.stop());
                 }
-                const constraints = {
-                    video: { facingMode: currentFacingMode, width: { ideal: 720 }, height: { ideal: 1280 } },
-                    audio: { echoCancellation: true, noiseSuppression: true }
-                };
+
+                let constraints;
+                if (!useFallback) {
+                    constraints = {
+                        video: { facingMode: currentFacingMode, width: { ideal: 720 }, height: { ideal: 1280 } },
+                        audio: { echoCancellation: true, noiseSuppression: true }
+                    };
+                } else {
+                    // Fallback: Minimal requirements
+                    constraints = { video: true, audio: true };
+                }
+
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 log('Camera OK');
                 videoElement.srcObject = localStream;
-                if (currentFacingMode === 'user') { videoElement.style.transform = 'scaleX(-1)'; }
+
+                if (!useFallback && currentFacingMode === 'user') { videoElement.style.transform = 'scaleX(-1)'; }
+                else if (useFallback) { videoElement.style.transform = 'scaleX(1)'; }
                 else { videoElement.style.transform = 'scaleX(1)'; }
 
                 try { await videoElement.play(); } catch (e) { log("Auto-play error: " + e.message); }
 
             } catch (err) {
                 log("Error: " + err.name + " " + err.message);
-                showError("Kamera Hiba: " + err.name);
+                if (!useFallback) {
+                    log("Retrying with simple settings...");
+                    await initCamera(true);
+                } else {
+                    showError("Kamera Hiba: " + err.name);
+                }
             }
         }
 
@@ -495,7 +510,7 @@
         async function startBroadcast() {
             if (!localStream) {
                 log("No stream, retrying init...");
-                await initCamera();
+                await initCamera(true); // Force simple init if missing
                 if (!localStream) { showError("Nincs kamera!"); return; }
             }
             statusText.textContent = "CSATLAKOZÁS...";
@@ -505,7 +520,7 @@
 
         function stopBroadcast() {
             if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            if (ws) { ws.close(); ws = null; "1000"; }
+            if (ws) { ws.close(); ws = null; }
             isStreaming = false;
             updateUIState(false);
             showMessage("Élő adás vége");
@@ -532,7 +547,7 @@
             ws = new WebSocket(wsUrl);
             ws.onopen = () => { log('WS Open'); createPeerConnection(); };
             ws.onmessage = (e) => handleSignaling(JSON.parse(e.data));
-            ws.onerror = (e) => { log("WS Error Event"); showError("Hálózati Hiba: WS Error"); stopBroadcast(); };
+            ws.onerror = (e) => { log("WS Error by Event"); showError("Hálózati Hiba: WS Error"); stopBroadcast(); };
             ws.onclose = (e) => {
                 log(`WS Closed: ${e.code} - ${e.reason}`);
                 if (isStreaming) {
@@ -567,7 +582,7 @@
             if (msg.command === "answer") {
                 log("Got Answer SDP");
                 const ipMatch = msg.sdp.match(/c=IN IP4 ([\d\.]+)/);
-                if (ipMatch) log("Server IP in SDP: " + ipMatch[1]); // CRITICAL DEBUG INFO
+                if (ipMatch) log("Server IP in SDP: " + ipMatch[1]);
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
             }
             else if (msg.command === "candidate" && msg.candidates) {
