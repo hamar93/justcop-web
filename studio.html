@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v2.3 (Stable Network)<br></div>
-        <div id="version">v2.3</div>
+        <div id="logger">DEBUG LOG v2.4 (Direction Fix)<br></div>
+        <div id="version">v2.4</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -627,10 +627,10 @@
         }
 
         function connectToOME() {
-            // v2.3 Simplification: Remove transport=tcp and direction parameters
-            // Let OME and WebRTC negotiate the best transport
-            const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}`;
-            log('Connecting WS (v2.3): ' + wsUrl);
+            // v2.4 Fix: Restore direction=send (REQUIRED for publishing)
+            // Keeping transport=tcp removed for stability (let WebRTC decide)
+            const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}?direction=send`;
+            log('Connecting WS (v2.4): ' + wsUrl);
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
