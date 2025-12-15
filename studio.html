@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v1.9 (Back Cam + JSON Fix)<br></div>
-        <div id="version">v1.9</div>
+        <div id="logger">DEBUG LOG v1.10 (Fixing Signaling Fields)<br></div>
+        <div id="version">v1.10</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -466,6 +466,7 @@
         let localStream = null;
         let peerConnection = null;
         let ws = null;
+        let peerId = null;
         let currentFacingMode = 'environment'; // Default: Back Camera
 
         const videoElement = document.getElementById('preview');
@@ -678,8 +679,11 @@
 
         function sendSignaling(data) {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                // Fixed ID for OME Protocol Compliance (v1.8)
+                // Fixed ID for OME Protocol Compliance (v1.10)
                 data.id = 1;
+                data.stream_id = CONFIG.streamId;
+                if (peerId) data.peer_id = peerId;
+
                 log('SIG -> ' + data.command + ' (id: ' + data.id + ')');
                 ws.send(JSON.stringify(data));
             }
