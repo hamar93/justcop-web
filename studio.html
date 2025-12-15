@@ -11,6 +11,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -18,7 +19,6 @@
             color: white;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
-            /* No scrolling */
             height: 100vh;
             width: 100vw;
         }
@@ -37,7 +37,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* Fill screen */
             transform: scaleX(-1);
             /* Mirror effect for selfie cam */
         }
@@ -54,9 +53,8 @@
             flex-direction: column;
             justify-content: space-between;
             padding: 20px;
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent, rgba(0, 0, 0, 0.6));
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, transparent 20%, transparent 80%, rgba(0, 0, 0, 0.7) 100%);
             pointer-events: none;
-            /* Let clicks pass to video if needed */
         }
 
         /* Top Bar */
@@ -65,22 +63,63 @@
             justify-content: space-between;
             align-items: center;
             pointer-events: auto;
+            margin-top: 20px;
         }
 
         .status-badge {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #ccc;
-            border: 1px solid #444;
+            background: rgba(20, 20, 20, 0.8);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #aaa;
+            border: 1px solid #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
         }
 
         .status-badge.live {
-            background: #ff0000;
-            color: white;
+            background: rgba(220, 20, 20, 0.2);
             border-color: #ff0000;
+            color: #ff2e2e;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
+        }
+
+        .status-badge.live .status-indicator {
+            background-color: #ff0000;
+            box-shadow: 0 0 8px #ff0000;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .stream-info {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: right;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         /* Bottom Controls */
@@ -88,44 +127,50 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 20px;
             pointer-events: auto;
             margin-bottom: 40px;
+            position: relative;
         }
 
         /* Go Live Button */
         #action-btn {
-            width: 72px;
-            height: 72px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            border: 4px solid white;
-            background: rgba(255, 255, 255, 0.2);
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.2);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             display: flex;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        #action-btn:active {
+            transform: scale(0.95);
         }
 
         #action-btn .inner {
-            width: 56px;
-            height: 56px;
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
             background: #ff2e2e;
-            /* JustCop Red */
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
 
         #action-btn.streaming {
-            border-color: #ff2e2e;
-            background: rgba(255, 46, 46, 0.2);
+            border-color: rgba(255, 46, 46, 0.5);
+            background: rgba(50, 0, 0, 0.3);
         }
 
         #action-btn.streaming .inner {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 4px;
-            /* Stop square */
             background: #ff2e2e;
+            box-shadow: 0 0 15px rgba(255, 46, 46, 0.6);
         }
 
         /* Helper Messages */
@@ -134,12 +179,28 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 8px;
+            background: rgba(15, 15, 15, 0.9);
+            padding: 12px 24px;
+            border-radius: 12px;
             display: none;
             z-index: 3;
             text-align: center;
+            font-weight: 500;
+            border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .debug-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            font-size: 10px;
+            color: lime;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            display: none;
+            /* Hidden by default */
+            pointer-events: none;
         }
     </style>
 </head>
@@ -152,8 +213,13 @@
 
     <div id="ui-layer">
         <div class="top-bar">
-            <div id="status" class="status-badge">READY</div>
+            <div id="status" class="status-badge">
+                <div class="status-indicator"></div>
+                <span>READY</span>
+            </div>
+            <div class="stream-info" id="stream-id-display">Initializing...</div>
         </div>
+
         <div class="controls">
             <div id="action-btn">
                 <div class="inner"></div>
@@ -162,33 +228,69 @@
     </div>
 
     <div id="message"></div>
+    <div id="debug" class="debug-panel"></div>
 
     <script>
+        // --- Configuration ---
+        // Defaults, but can be overridden by URL params "?host=...&app=...&stream=..."
+        const CONFIG = {
+            host: 'ws://217.113.49.50:3333', // OME Signaling Port
+            app: 'app',
+            streamId: 'default',
+            token: ''
+        };
+
         // --- State ---
         let isStreaming = false;
-        let stream = null;
-        let videoElement = document.getElementById('preview');
-        let statusBadge = document.getElementById('status');
-        let actionBtn = document.getElementById('action-btn');
-        let msgBox = document.getElementById('message');
+        let localStream = null;
+        let peerConnection = null;
+        let ws = null;
+
+        // --- Elements ---
+        const videoElement = document.getElementById('preview');
+        const statusBadge = document.getElementById('status');
+        const statusText = statusBadge.querySelector('span');
+        const actionBtn = document.getElementById('action-btn');
+        const msgBox = document.getElementById('message');
+        const streamIdDisplay = document.getElementById('stream-id-display');
+        const debugPanel = document.getElementById('debug');
 
         // --- Core Functions ---
 
+        function parseParams() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('id')) CONFIG.streamId = params.get('id');
+            if (params.has('host')) CONFIG.host = params.get('host'); // Should start with ws:// or wss://
+            if (params.has('app')) CONFIG.app = params.get('app');
+            if (params.has('token')) CONFIG.token = params.get('token');
+
+            streamIdDisplay.textContent = `ID: ${CONFIG.streamId}`;
+        }
+
         async function initCamera() {
             try {
-                // Request Camera & Mic
-                stream = await navigator.mediaDevices.getUserMedia({
+                // Request Camera & Mic with constraints optimized for mobile streaming
+                const constraints = {
                     video: {
-                        facingMode: 'user', // Selfie cam
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        facingMode: 'user',
+                        width: { ideal: 720 }, // 720p is good for mobile bandwidth
+                        height: { ideal: 1280 },
+                        frameRate: { ideal: 30 }
                     },
-                    audio: true
-                });
-                videoElement.srcObject = stream;
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                };
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = localStream;
+                log("Camera initialized");
             } catch (err) {
-                showError("Camera access denied: " + err.message);
+                showError("Camera Error: " + err.message);
                 console.error(err);
+
+                // Retry button?
             }
         }
 
@@ -201,26 +303,32 @@
         }
 
         function startBroadcast() {
-            // TODO: Implement OME WebRTC or WHIP publishing here
-            // For now, visual feedback only
-            isStreaming = true;
-            statusBadge.textContent = "LIVE";
-            statusBadge.classList.add('live');
-            actionBtn.classList.add('streaming');
-            showMessage("Live Stream Started (Simulation)");
-
-            // Notify Flutter
-            if (window.flutter_inappwebview) {
-                window.flutter_inappwebview.callHandler('onBroadcastStart');
+            if (!localStream) {
+                showError("No camera stream!");
+                return;
             }
+
+            statusText.textContent = "CONNECTING...";
+            actionBtn.style.opacity = "0.5";
+            actionBtn.style.pointerEvents = "none";
+
+            // Initiate WebRTC Connection directly to OME
+            connectToOME();
         }
 
         function stopBroadcast() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
             isStreaming = false;
-            statusBadge.textContent = "READY";
-            statusBadge.classList.remove('live');
-            actionBtn.classList.remove('streaming');
-            showMessage("Stream Ended");
+            updateUIState(false);
+            showMessage("Live Stream Ended");
 
             // Notify Flutter
             if (window.flutter_inappwebview) {
@@ -228,20 +336,160 @@
             }
         }
 
+        function updateUIState(live) {
+            isStreaming = live;
+            actionBtn.style.opacity = "1";
+            actionBtn.style.pointerEvents = "auto";
+
+            if (live) {
+                statusText.textContent = "LIVE";
+                statusBadge.classList.add('live');
+                actionBtn.classList.add('streaming');
+            } else {
+                statusText.textContent = "READY";
+                statusBadge.classList.remove('live');
+                actionBtn.classList.remove('streaming');
+            }
+        }
+
+        // --- OME WebRTC Signaling Logic ---
+
+        function connectToOME() {
+            // OvenMediaEngine Signaling URL Construction
+            // Format: ws://<host>:<port>/<app>/<streamId>?direction=send&transport=webrtc
+            const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}?direction=send&transport=webrtc`;
+
+            log(`Connecting to ${wsUrl}`);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = async () => {
+                log("WS Connected. Creating PeerConnection...");
+                createPeerConnection();
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleSignalingMessage(msg);
+            };
+
+            ws.onerror = (e) => {
+                log("WS Error: " + JSON.stringify(e));
+                showError("Connection Error");
+                stopBroadcast();
+            };
+
+            ws.onclose = () => {
+                log("WS Closed");
+                if (isStreaming) stopBroadcast(); // Unexpected close
+            };
+        }
+
+        function createPeerConnection() {
+            const config = {
+                iceServers: [
+                    { urls: "stun:stun.l.google.com:19302" } // Public STUN
+                ]
+            };
+
+            peerConnection = new RTCPeerConnection(config);
+
+            // Add local tracks
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            // ICE Candidate handler
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignalingMessage({
+                        command: "candidate",
+                        candidates: [event.candidate]
+                    });
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                log(`PC State: ${peerConnection.connectionState}`);
+                if (peerConnection.connectionState === 'connected') {
+                    // We are live!
+                    updateUIState(true);
+                    showMessage("You are LIVE!");
+                    // Notify Flutter
+                    if (window.flutter_inappwebview) {
+                        window.flutter_inappwebview.callHandler('onBroadcastStart');
+                    }
+                } else if (peerConnection.connectionState === 'failed') {
+                    showError("Connection Failed");
+                    stopBroadcast();
+                }
+            };
+
+            // Create Offer
+            createOffer();
+        }
+
+        async function createOffer() {
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                sendSignalingMessage({
+                    command: "offer",
+                    sdp: offer
+                });
+            } catch (e) {
+                log("Error creating offer: " + e);
+                stopBroadcast();
+            }
+        }
+
+        async function handleSignalingMessage(msg) {
+            if (msg.command === "answer") {
+                log("Received Answer");
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            } else if (msg.command === "candidate") {
+                log("Received Remote Candidate"); // OME usually doesn't send candidates this way but good to handle
+                if (msg.candidates) {
+                    msg.candidates.forEach(async candidate => {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    });
+                }
+            } else if (msg.error) {
+                showError("Server Error: " + msg.error);
+                stopBroadcast();
+            }
+        }
+
+        function sendSignalingMessage(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            }
+        }
+
+        // --- Helpers ---
+
         function showMessage(text) {
             msgBox.textContent = text;
+            msgBox.style.background = 'rgba(15, 15, 15, 0.9)';
             msgBox.style.display = 'block';
-            setTimeout(() => { msgBox.style.display = 'none'; }, 2000);
+            setTimeout(() => { msgBox.style.display = 'none'; }, 2500);
         }
 
         function showError(text) {
             msgBox.textContent = text;
-            msgBox.style.background = 'rgba(255,0,0,0.8)';
+            msgBox.style.background = 'rgba(200, 30, 30, 0.9)';
             msgBox.style.display = 'block';
+            setTimeout(() => { msgBox.style.display = 'none'; }, 4000);
+        }
+
+        function log(msg) {
+            console.log("[LiveStudio] " + msg);
+            // debugPanel.innerHTML += `<div>${msg}</div>`; // Uncomment for on-screen debug
         }
 
         // --- Init ---
         document.addEventListener('DOMContentLoaded', () => {
+            parseParams();
             initCamera();
             actionBtn.addEventListener('click', toggleBroadcast);
         });
