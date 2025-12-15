@@ -514,10 +514,16 @@
             const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}?direction=send&transport=webrtc`;
             log('Connecting WS: ' + wsUrl);
             ws = new WebSocket(wsUrl);
-            ws.onopen = () => createPeerConnection();
+            ws.onopen = () => { log('WS Open'); createPeerConnection(); };
             ws.onmessage = (e) => handleSignaling(JSON.parse(e.data));
-            ws.onerror = (e) => { log("WS Error"); showError("Hálózati Hiba"); stopBroadcast(); };
-            ws.onclose = () => { if (isStreaming) stopBroadcast(); };
+            ws.onerror = (e) => { log("WS Error Event"); showError("Hálózati Hiba: WS Error"); stopBroadcast(); };
+            ws.onclose = (e) => {
+                log(`WS Closed: ${e.code} - ${e.reason}`);
+                if (isStreaming) {
+                    showError(`Kapcsolat bontva (${e.code})`);
+                    stopBroadcast();
+                }
+            };
         }
 
         function createPeerConnection() {
