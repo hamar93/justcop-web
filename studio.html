@@ -436,8 +436,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger">DEBUG LOG v1.10 (Fixing Signaling Fields)<br></div>
-        <div id="version">v1.10</div>
+        <div id="logger">DEBUG LOG v2.0 (OME Protocol Fix)<br></div>
+        <div id="version">v2.0</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -626,12 +626,27 @@
         }
 
         function connectToOME() {
-            const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}?direction=send&transport=webrtc`;
+            const wsUrl = `${CONFIG.host}/${CONFIG.app}/${CONFIG.streamId}?direction=send&transport=tcp`;
             log('Connecting WS: ' + wsUrl);
             ws = new WebSocket(wsUrl);
-            ws.onopen = () => { log('WS Open'); createPeerConnection(); };
-            ws.onmessage = (e) => handleSignaling(JSON.parse(e.data));
-            ws.onerror = (e) => { log("WS Error by Event"); showError("Hálózati Hiba: WS Error"); stopBroadcast(); };
+
+            ws.onopen = () => {
+                log('WS Open - Requesting Offer from Server');
+                // OME Protocol: Client requests offer first!
+                sendSignaling({ command: "request_offer" });
+            };
+
+            ws.onmessage = (e) => {
+                log('WS MSG: ' + e.data.substring(0, 100) + '...');
+                handleSignaling(JSON.parse(e.data));
+            };
+
+            ws.onerror = (e) => {
+                log("WS Error");
+                showError("Hálózati Hiba: WS Error");
+                stopBroadcast();
+            };
+
             ws.onclose = (e) => {
                 log(`WS Closed: ${e.code} - ${e.reason}`);
                 if (isStreaming) {
@@ -641,51 +656,114 @@
             };
         }
 
-        function createPeerConnection() {
-            const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
-            peerConnection = new RTCPeerConnection(config);
-            localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-            peerConnection.onicecandidate = (e) => { if (e.candidate) sendSignaling({ command: "candidate", candidates: [e.candidate] }); };
-            peerConnection.onconnectionstatechange = () => {
-                log('PC State: ' + peerConnection.connectionState);
-                if (peerConnection.connectionState === 'connected') { updateUIState(true); showMessage("ÉLŐ ADÁS!"); if (window.flutter_inappwebview) window.flutter_inappwebview.callHandler('onBroadcastStart'); }
-                else if (peerConnection.connectionState === 'failed') { log("PC Failed"); showError("Hiba"); stopBroadcast(); }
-            };
-            createOffer();
-        }
-
-        async function createOffer() {
-            try {
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                sendSignaling({ command: "offer", sdp: offer });
-            } catch (e) { log(e); stopBroadcast(); }
-        }
-
         async function handleSignaling(msg) {
-            if (msg.command === "answer") {
-                log("Got Answer SDP");
-                const ipMatch = msg.sdp.match(/c=IN IP4 ([\d\.]+)/);
-                if (ipMatch) log("Server IP in SDP: " + ipMatch[1]);
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            log('Handling: ' + msg.command);
+
+            // OME sends us the OFFER (not answer!)
+            if (msg.command === "offer") {
+                log("Got OFFER SDP from server");
+
+                // Extract ICE servers if provided (for TCP transport)
+                let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+                if (msg.ice_servers && msg.ice_servers.length > 0) {
+                    iceServers = msg.ice_servers;
+                    log("Using server ICE: " + JSON.stringify(iceServers));
+                }
+
+                // Create PeerConnection with received ICE config
+                const config = { iceServers: iceServers };
+                peerConnection = new RTCPeerConnection(config);
+
+                // Add local tracks
+                localStream.getTracks().forEach(t => {
+                    peerConnection.addTrack(t, localStream);
+                    log("Added track: " + t.kind);
+                });
+
+                // ICE candidate handling
+                peerConnection.onicecandidate = (e) => {
+                    if (e.candidate) {
+                        log("Sending ICE candidate");
+                        sendSignaling({ command: "candidate", candidates: [e.candidate] });
+                    }
+                };
+
+                // Connection state
+                peerConnection.onconnectionstatechange = () => {
+                    log('PC State: ' + peerConnection.connectionState);
+                    if (peerConnection.connectionState === 'connected') {
+                        updateUIState(true);
+                        showMessage("ÉLŐ ADÁS!");
+                        if (window.flutter_inappwebview) window.flutter_inappwebview.callHandler('onBroadcastStart');
+                    }
+                    else if (peerConnection.connectionState === 'failed') {
+                        log("PC Failed");
+                        showError("Kapcsolat Hiba");
+                        stopBroadcast();
+                    }
+                };
+
+                // Set remote description (the OFFER from server)
+                try {
+                    const offerSdp = new RTCSessionDescription({
+                        type: "offer",
+                        sdp: msg.sdp.sdp || msg.sdp
+                    });
+                    await peerConnection.setRemoteDescription(offerSdp);
+                    log("Remote desc set (offer)");
+
+                    // Add candidates if provided with offer
+                    if (msg.candidates) {
+                        for (const c of msg.candidates) {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(c));
+                        }
+                        log("Added " + msg.candidates.length + " candidates");
+                    }
+
+                    // Create ANSWER and send back
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    log("Local desc set (answer)");
+
+                    sendSignaling({
+                        command: "answer",
+                        sdp: peerConnection.localDescription
+                    });
+
+                } catch (e) {
+                    log("SDP Error: " + e.message);
+                    showError("SDP Hiba");
+                    stopBroadcast();
+                }
             }
             else if (msg.command === "candidate" && msg.candidates) {
-                msg.candidates.forEach(c => peerConnection.addIceCandidate(new RTCIceCandidate(c)));
-            } else if (msg.error) {
-                log("OME Error: " + msg.error);
-                showError(msg.error); stopBroadcast();
+                log("Got " + msg.candidates.length + " ICE candidates");
+                for (const c of msg.candidates) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(c));
+                    } catch (e) {
+                        log("ICE Error: " + e.message);
+                    }
+                }
+            }
+            else if (msg.code === 200) {
+                log("Server ACK: " + msg.message);
+            }
+            else if (msg.code && msg.code >= 400) {
+                log("Server Error: " + msg.code + " - " + msg.message);
+                showError(msg.message || "Szerver Hiba");
+                stopBroadcast();
             }
         }
 
         function sendSignaling(data) {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                // Fixed ID for OME Protocol Compliance (v1.10)
+                // OME Protocol v2.0
                 data.id = 1;
-                data.stream_id = CONFIG.streamId;
-                if (peerId) data.peer_id = peerId;
-
-                log('SIG -> ' + data.command + ' (id: ' + data.id + ')');
+                log('SIG -> ' + data.command);
                 ws.send(JSON.stringify(data));
+            } else {
+                log("WS not open, cannot send: " + data.command);
             }
         }
 
