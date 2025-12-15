@@ -314,18 +314,31 @@
 
         #logger {
             position: absolute;
-            top: 10px;
+            top: 60px;
             left: 10px;
-            width: 80%;
-            height: 100px;
+            width: 90%;
+            height: 150px;
             overflow-y: auto;
-            font-size: 10px;
-            color: lime;
-            background: rgba(0, 0, 0, 0.5);
+            font-size: 11px;
+            color: #0f0;
+            /* Matrix Green */
+            background: rgba(0, 0, 0, 0.85);
             pointer-events: none;
-            z-index: 0;
-            display: none;
-            /* Enable via console */
+            z-index: 1000;
+            display: block;
+            /* Visible by default! */
+            border: 1px solid #005000;
+            padding: 5px;
+            font-family: monospace;
+        }
+
+        #version {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            color: #555;
+            font-size: 10px;
+            z-index: 20;
         }
     </style>
 </head>
@@ -344,7 +357,9 @@
             </div>
 
             <div style="display:flex; gap:10px;">
-                <div id="logger-toggle" style="opacity:0;">L</div>
+                <div id="logger-toggle"
+                    style="background:rgba(200,0,0,0.5); width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-weight:bold;">
+                    L</div>
                 <div id="reload-btn" title="Reload Camera">
                     <svg viewBox="0 0 24 24">
                         <path
@@ -361,7 +376,8 @@
         </div>
 
         <div style="flex: 1;"></div>
-        <div id="logger"></div>
+        <div id="logger">DEBUG LOG v1.3<br></div>
+        <div id="version">v1.3</div>
 
         <div id="chat-container">
             <div id="chat-list"></div>
@@ -407,7 +423,7 @@
         function log(msg) {
             console.log(msg);
             const line = document.createElement('div');
-            line.textContent = '>' + msg;
+            line.innerHTML = '> ' + msg;
             logger.appendChild(line);
             logger.scrollTop = logger.scrollHeight;
         }
@@ -489,7 +505,7 @@
 
         function stopBroadcast() {
             if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            if (ws) { ws.close(); ws = null; }
+            if (ws) { ws.close(); ws = null; "1000"; }
             isStreaming = false;
             updateUIState(false);
             showMessage("Élő adás vége");
@@ -534,7 +550,7 @@
             peerConnection.onconnectionstatechange = () => {
                 log('PC State: ' + peerConnection.connectionState);
                 if (peerConnection.connectionState === 'connected') { updateUIState(true); showMessage("ÉLŐ ADÁS!"); if (window.flutter_inappwebview) window.flutter_inappwebview.callHandler('onBroadcastStart'); }
-                else if (peerConnection.connectionState === 'failed') { showError("Hiba"); stopBroadcast(); }
+                else if (peerConnection.connectionState === 'failed') { log("PC Failed"); showError("Hiba"); stopBroadcast(); }
             };
             createOffer();
         }
@@ -548,10 +564,18 @@
         }
 
         async function handleSignaling(msg) {
-            if (msg.command === "answer") await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            if (msg.command === "answer") {
+                log("Got Answer SDP");
+                const ipMatch = msg.sdp.match(/c=IN IP4 ([\d\.]+)/);
+                if (ipMatch) log("Server IP in SDP: " + ipMatch[1]); // CRITICAL DEBUG INFO
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            }
             else if (msg.command === "candidate" && msg.candidates) {
                 msg.candidates.forEach(c => peerConnection.addIceCandidate(new RTCIceCandidate(c)));
-            } else if (msg.error) { showError(msg.error); stopBroadcast(); }
+            } else if (msg.error) {
+                log("OME Error: " + msg.error);
+                showError(msg.error); stopBroadcast();
+            }
         }
 
         function sendSignaling(data) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); }
